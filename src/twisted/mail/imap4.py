@@ -646,7 +646,7 @@ class IMAP4Server(basic.LineReceiver, policies.TimeoutMixin):
 
     # Search terms the implementation of which needs to be passed both the last
     # message identifier (UID) and the last sequence id.
-    _requiresLastMessageInfo = {b"OR", b"NOT", b"UID"}
+    _requiresLastMessageInfo = {"OR", "NOT", "UID"}
 
     state = "unauth"
 
@@ -1858,8 +1858,8 @@ class IMAP4Server(basic.LineReceiver, policies.TimeoutMixin):
 
     def search_HEADER(self, query, id, msg):
         hdr = query.pop(0).lower()
-        hdr = msg.getHeaders(False, hdr).get(hdr, "")
-        return hdr.lower().find(query.pop(0).lower()) != -1
+        message_hdr = msg.getHeaders(False, hdr).get(hdr, "")
+        return message_hdr.lower().find(query.pop(0).lower()) != -1
 
     def search_KEYWORD(self, query, id, msg):
         query.pop(0)
@@ -4367,6 +4367,8 @@ def parseIdList(s, lastMessageId=None):
     @return: A C{MessageSet} that contains the ids defined in the list
     """
     res = MessageSet()
+    if isinstance(s, str):
+        s = s.encode()
     parts = s.split(b",")
     for p in parts:
         if b":" in p:
@@ -5692,13 +5694,6 @@ class _FetchParser:
             return self.__bytes__().decode("ascii")
 
         def getBytes(self, length: Optional[int] = None) -> bytes:
-            """
-            Prepare the initial command response for a Fetch BODY request.
-            Interpret the Fetch request from the client and return the
-            appropriate response based on RFC 3501.
-            This is not the body itself of the response, merely the section
-            of the first response line that describes the body part.
-            """
             base = b"BODY"
             part = b""
             separator = b""
@@ -5724,7 +5719,6 @@ class _FetchParser:
                     # IMAP4rev1 says that if the partial length is greater than
                     # the length of the data, the server should send the entire
                     # data., with a "0" as the partial length
-                    # https://datatracker.ietf.org/doc/html/rfc3501#section-6.4.5
                     base += b"<0>"
             return base
 
